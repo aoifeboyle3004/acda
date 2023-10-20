@@ -1,5 +1,5 @@
 ---
-title: "Week7"
+title: "Week 7"
 author: "Aoife Boyle"
 date: "`r Sys.Date()`"
 output: html_document
@@ -7,17 +7,143 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+
+read_csv("/data/ist.CSV")
+getwd()
+ist_data<-read.csv("./data/ist.CSV")
+ist_data <-clean_names(ist_data)
+
+
 ```
 
-
+#t test paired
 
 ```{r cars}
+ttest_data <-ist_data %>%
+  filter(sex=="M") %>%
+  filter(stype %in% c("TACS", "LACS"))
+
+ttest_result <-ttest_data %>%
+  t.test(rsbp ~ stype, data=.)
+
+ttest_result
+
+
+```
+##ANOVA
+
+```{r anova}
+ist_data %>%
+  filter(sex =="M") %>%
+  ggplot(aes(x=stype, y=rsbp)) +
+  geom_boxplot()
+
+
+aov_data_f <-ist_data %>%
+  filter(sex=="F") %>%
+  select(stype,rsbp)
+
+aov_data_m<-ist_data %>%
+  filter(sex=="M") %>%
+  select(stype,rsbp)
+
+aov_fit_m<-aov(rsbp ~ stype,data=aov_data_m)
+summary(aov_fit_m)
+
+aov_fit_f <-aov(rsbp ~ stype,data=aov_data_f)
+summary(aov_fit_f)
+
+
+```
+```{r wilcox_test}
+
+library(gapminder)
+library(ggplot2)
+
+gap_data <-gapminder
+africa_data<-gap_data %>%
+  filter(year %in% 1982:2007) %>%
+  filter(continent=="Africa")
+  
+p1<-africa_data %>%
+  ggplot(aes(x=lifeExp))+
+  geom_histogram(bin=15)+
+  facet_wrap(~year)
+
+p1
+
+p2<-africa_data %>%
+  ggplot(aes(sample=lifeExp)) +
+  geom_qq() +
+  geom_qq_line(colour= "blue") +
+  facet_wrap(~year)
+
+p2
+
+
+p3<-africa_data %>%
+  ggplot(aes(x= factor(year), y=lifeExp)) +
+  geom_boxplot(aes(fill = factor(year))) +
+  geom_jitter(alpha=0.5)
+  
+p3  
+
+install.packages("patchwork")
+
+library(patchwork)
+p1/p2|p3
+
+africa_data %>% 
+  filter(year %in% c(1982, 2007)) %>%
+  wilcox.test(lifeExp ~ year, data=.)
+
+
+  
+```
+```{r propensity_match1}
+install.packages("MatchIt")
+
+library(MatchIt)
+currentDataset <- read_csv("https://raw.githubusercontent.com/gckc123/ExampleData/main/smoking_psyc_distress.csv")
+
+match_obj <-matchit(smoker ~ sex + indigeneity + high_school + partnered + remoteness + language + risky_alcohol + age, 
+                    data=currentDataset, 
+                    method= NULL, 
+                    distance= "glm", 
+                    ratio = 1, 
+                    replace = FALSE)
+
+summary(match_obj)
+plot(match_obj, type="jitter")
+
+plot(summary(match_obj), abs= FALSE)
 
 ```
 
+```{r propensity_match2 - how likely the below group are to have 1st variable (ie be smoker)}
+
+match_obj_2 <-matchit(smoker ~ sex + indigeneity + high_school + partnered + remoteness + language + risky_alcohol + age, 
+                    data=currentDataset, 
+                    method= "nearest", 
+                    distance= "glm", 
+                    ratio = 1, 
+                    replace = FALSE)
+
+summary(match_obj_2)
+plot(match_obj_2, type="jitter")
+
+plot(summary(match_obj_2), abs= FALSE)/
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-
+plot(pressure)
 ```
 
-
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
